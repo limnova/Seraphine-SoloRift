@@ -10,7 +10,6 @@ SOURCES += app/view/main_window.py \
            app/view/opgg_build_interface.py \
            app/components/game_infobar_widget.py \
            app/components/summoner_name_button.py \
-           app/components/mode_filter_widget.py \
            app/components/message_box.py \
            app/components/setting_cards.py \
            app/components/profile_level_icon_widget.py \
