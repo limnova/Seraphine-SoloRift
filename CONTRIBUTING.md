@@ -4,15 +4,16 @@ Thank you for your interest in helping with Seraphine's translations! This guide
 
 ## Translation Files
 
-Seraphine uses Qt's translation system (`.ts` files) for UI translations and JSON files for game-related content. The translation files are located in:
+Seraphine uses Qt's translation system (`.ts` files) for UI translations. The translation files are located in:
 
 - UI Translations: `app/resource/i18n/Seraphine.{locale}.ts`
-- Game Modes: `app/resource/i18n/gamemodes.json`
 
 Currently supported languages:
-- English (en_US)
-- Portuguese (pt_BR)
 - Chinese Simplified (zh_CN)
+
+> Only Chinese Simplified is shipped. The Python source strings are English, and the Chinese UI text
+> comes from the compiled `Seraphine.zh_CN.qm` — `.ts` alone has no runtime effect, it must be
+> compiled with `lrelease` and the resulting `.qm` committed.
 
 ## How to Add/Update Translations
 
@@ -20,7 +21,7 @@ Currently supported languages:
 
 1. **File Structure**
    - Each translation file follows the Qt TS format
-   - Files are named as `Seraphine.{locale}.ts` (e.g., `Seraphine.en_US.ts`)
+   - Files are named as `Seraphine.{locale}.ts` (e.g., `Seraphine.zh_CN.ts`)
    - Translations are organized by context (e.g., `ToolsTranslator`, `MainWindow`, `SettingInterface`)
 
 2. **Adding New Translations**
@@ -35,28 +36,18 @@ Currently supported languages:
    </context>
    ```
 
-3. **Best Practices**
+3. **Compiling to `.qm`**
+   ```shell
+   lrelease app/resource/i18n/Seraphine.zh_CN.ts
+   ```
+   `main.py` loads translations by locale through `QTranslator`, so the compiled file must be named
+   exactly `Seraphine.zh_CN.qm`.
+
+4. **Best Practices**
    - Keep translations concise and natural
    - Maintain consistent terminology
    - Preserve any HTML tags in the original text
    - Test translations in the application
-
-### Game Modes (gamemodes.json)
-
-1. **File Structure**
-   ```json
-   {
-       "Original Text": {
-           "en": "English Translation",
-           "pt": "Portuguese Translation"
-       }
-   }
-   ```
-
-2. **Adding New Translations**
-   - Add entries for both English and Portuguese
-   - Keep game mode names consistent with official League of Legends terminology
-   - Use proper capitalization and formatting
 
 ## Translation Guidelines
 
