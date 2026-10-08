@@ -14,7 +14,7 @@ import aiohttp
 import requests
 from PyQt5.QtCore import QObject
 
-from app.common.config import cfg, Language
+from app.common.config import cfg
 from app.common.logger import logger
 from app.common.signals import signalBus
 from app.common.util import getPortTokenServerByPid, getTasklistPath, getLolClientPid
@@ -333,7 +333,6 @@ class LolClientConnector(QObject):
             "profile icons",
             "rune icons",
             "summoner spell icons",
-            "augment icons",
             "splashes",
         ]:
             p = f"app/resource/game/{folder}"
@@ -350,10 +349,9 @@ class LolClientConnector(QObject):
         champions = await self.__json_retry_get(
             "/lol-game-data/assets/v1/champion-summary.json")
         skins = await self.__json_retry_get("/lol-game-data/assets/v1/skins.json")
-        augments = await self.__json_retry_get("/lol-game-data/assets/v1/cherry-augments.json")
 
         self.manager = JsonManager(
-            items, spells, runes, queues, champions, skins, perks, augments)
+            items, spells, runes, queues, champions, skins, perks)
 
     def __initPlatformInfo(self):
         if self.server:
@@ -479,19 +477,6 @@ class LolClientConnector(QObject):
 
         if not os.path.exists(icon):
             path = self.manager.getItemIconPath(iconId)
-            res = await self.__get(path)
-
-            with open(icon, "wb") as f:
-                f.write(await res.read())
-
-        return icon
-
-    @retry()
-    async def getAugmentIcon(self, augmentId):
-        icon = f"app/resource/game/augment icons/{augmentId}.png"
-
-        if not os.path.exists(icon):
-            path = self.manager.getAugmentsIconPath(augmentId)
             res = await self.__get(path)
 
             with open(icon, "wb") as f:
@@ -657,136 +642,8 @@ class LolClientConnector(QObject):
         return res
 
     @retry()
-    async def setProfileBackground(self, skinId):
-        data = {
-            "key": "backgroundSkinId",
-            "value": skinId,
-        }
-
-        res = await self.__post(
-            "/lol-summoner/v1/current-summoner/summoner-profile", data=data
-        )
-
-        return await res.json()
-
-    @retry()
-    async def setProfileBackgroundAugments(self, contentId):
-        data = {
-            'key': 'backgroundSkinAugments',
-            'value': contentId
-        }
-
-        res = await self.__post(
-            "/lol-summoner/v1/current-summoner/summoner-profile", data=data
-        )
-
-        return await res.json()
-
-    @retry()
-    async def setOnlineStatus(self, message):
-        data = {"statusMessage": message}
-        res = await self.__put("/lol-chat/v1/me", data=data)
-
-        return await res.json()
-
-    @retry()
-    async def setTierShowed(self, queue, tier, division):
-        data = {
-            "lol": {
-                "rankedLeagueQueue": queue,
-                "rankedLeagueTier": tier,
-                "rankedLeagueDivision": division,
-            }
-        }
-
-        res = await self.__put("/lol-chat/v1/me", data=data)
-
-        return await res.json()
-
-    @retry()
     async def reconnect(self):
         return await self.__post("/lol-gameflow/v1/reconnect")
-
-    @retry()
-    async def removeTokens(self):
-        reference = await self.__get("/lol-chat/v1/me")
-        reference = await reference.json()
-
-        banner = reference['lol'].get('bannerIdSelected')
-
-        data = {
-            "challengeIds": [],
-            "bannerAccent": banner,
-        }
-
-        res = await self.__post(
-            "/lol-challenges/v1/update-player-preferences/", data=data
-        )
-
-        return await res.read()
-
-    @retry()
-    async def setProfileIcon(self, iconId):
-        data = {"profileIconId": iconId}
-        url = "/lol-summoner/v1/current-summoner/icon"
-
-        res = await self.__put(url, data)
-        return await res.json()
-
-    @retry()
-    async def getChatMe(self):
-        res = await self.__get("/lol-chat/v1/me")
-        return await res.json()
-
-    @retry()
-    async def getCurrentSummonerProfile(self):
-        url = "/lol-summoner/v1/current-summoner/summoner-profile"
-
-        res = await self.__get(url)
-        return await res.json()
-
-    @retry()
-    async def removePrestigeCrest(self):
-        ref = await self.__get('/lol-regalia/v2/current-summoner/regalia')
-        ref = await ref.json()
-        bannerType = ref.get("preferredBannerType")
-
-        data = {
-            "preferredCrestType": "prestige",
-            "preferredBannerType": bannerType,
-            'selectedPrestigeCrest': 22
-        }
-
-        res = await self.__put('/lol-regalia/v2/current-summoner/regalia', data=data)
-        return await res.json()
-
-    @retry()
-    async def create5v5PracticeLobby(self, lobbyName, password):
-        data = {
-            "customGameLobby": {
-                "configuration": {
-                    "gameMode": "PRACTICETOOL",
-                    "gameMutator": "",
-                    "gameServerRegion": "",
-                    "mapId": 11,
-                    "mutators": {"id": 1},
-                    "spectatorPolicy": "AllAllowed",
-                    "teamSize": 5,
-                },
-                "lobbyName": lobbyName,
-                "lobbyPassword": password,
-            },
-            "isCustom": True,
-        }
-        res = await self.__post("/lol-lobby/v2/lobby", data=data)
-        return await res.json()
-
-    @retry()
-    async def setOnlineAvailability(self, availability):
-        data = {"availability": availability}
-
-        res = await self.__put("/lol-chat/v1/me", data=data)
-        return res
 
     @retry()
     async def acceptMatchMaking(self):
@@ -1065,17 +922,6 @@ class LolClientConnector(QObject):
         subprocess.Popen(['League of Legends.exe', f'{params}'])
         os.chdir(pwd)
 
-    async def dodge(self):
-        data = {
-            "destination": 'lcdsServiceProxy',
-            "method": 'call',
-            "args": '["", "teambuilder-draft", "quitV2", ""]'
-        }
-
-        res = await self.__post("/lol-login/v1/session/invoke", data=data)
-
-        return await res.json()
-
     async def getConversations(self):
         res = await self.__get("/lol-chat/v1/conversations")
 
@@ -1085,17 +931,6 @@ class LolClientConnector(QObject):
         res = await self.__get("/help")
 
         return await res.json()
-
-    @retry()
-    async def sendFriendRequest(self, name):
-        summoner = self.getSummonerByName(name)
-        summonerId = summoner['summonerId']
-
-        data = {
-            "name": name,
-        }
-
-        res = await self.__post('/lol-chat/v1/friend-requests', data=data)
 
     @retry()
     def sendNotificationMsg(self, title, content):
@@ -1253,7 +1088,7 @@ class LolClientConnector(QObject):
 
 
 class JsonManager:
-    def __init__(self, itemData, spellData, runeData, queueData, champions, skins, perks, augments):
+    def __init__(self, itemData, spellData, runeData, queueData, champions, skins, perks):
         self.items = {item["id"]: item["iconPath"] for item in itemData}
         self.spells = {item["id"]: item["iconPath"] for item in spellData[:-3]}
         self.runes = {item["id"]: {"icon": item["iconPath"],
@@ -1283,11 +1118,6 @@ class JsonManager:
         self.perks: dict = perks
         self.perkStyles: dict = None
 
-        # 给高贵的名人堂皮肤一个专属于它们的成员变量（划掉）
-        # 名人堂皮肤里有 augments 参数，使用它们可以让召唤师生涯背景带上签名^^_
-        # ref: https://github.com/Hanxven/LeagueAkari
-        self.skinAugments = {}
-
         for item in skins.values():
             championId = item["id"] // 1000
             champion = self.champions[self.champs[championId]]
@@ -1300,10 +1130,6 @@ class JsonManager:
                         'uncenteredSplashPath': tier['uncenteredSplashPath']
                     }
                     champion["id"] = championId
-
-                    if 'skinAugments' in tier and 'augments' in tier['skinAugments']:
-                        contentId = tier['skinAugments']['augments'][0]['contentId']
-                        self.skinAugments[tier['id']] = contentId
             else:
                 champion["skins"][item["name"]] = {
                     "skinId": item["id"],
@@ -1311,14 +1137,6 @@ class JsonManager:
                     'uncenteredSplashPath': item['uncenteredSplashPath']
                 }
                 champion["id"] = championId
-
-                if 'skinAugments' in item and 'augments' in item['skinAugments']:
-                    contentId = item['skinAugments']['augments'][0]['contentId']
-                    self.skinAugments[item['id']] = contentId
-
-        self.cherryAugments = {
-            item['id']: item
-            for item in augments}
 
     def getItemIconPath(self, iconId):
         if iconId != 0:
@@ -1356,44 +1174,16 @@ class JsonManager:
         return f"/lol-game-data/assets/v1/champion-icons/{championId}.png"
 
     def getMapNameById(self, mapId):
-        maps = {
-            -1: ("特殊地图", "Special map"),
-            11: ("召唤师峡谷", "Summoner's Rift"),
-            12: ("嚎哭深渊", "Howling Abyss"),
-            21: ("极限闪击", "Nexus Blitz"),
-            30: ("斗魂竞技场", "Arena"),
-        }
-
-        key = mapId if mapId in maps else -1
-        index = 1 if cfg.language.value == Language.ENGLISH else 0
-
-        return maps[key][index]
+        # 仅支持召唤师峡谷, 其它地图的玩法不再渲染
+        return "召唤师峡谷" if mapId == 11 else "特殊地图"
 
     def getNameMapByQueueId(self, queueId):
         if queueId == 0:
-            return {
-                "name": "Custom" if cfg.language.value == Language.ENGLISH else 
-                       "Personalizado" if cfg.language.value == Language.PORTUGUESE else 
-                       "自定义"
-            }
+            return {"name": "自定义"}
 
         data = self.queues[queueId]
         mapId = data["mapId"]
         name = data["name"]
-
-        with open("app/resource/i18n/gamemodes.json", encoding="utf-8") as f:
-            translate = json.loads(f.read())
-            
-            if name in translate:
-                if isinstance(translate[name], dict):
-                    if cfg.language.value == Language.ENGLISH:
-                        name = translate[name]["en"]
-                    elif cfg.language.value == Language.PORTUGUESE:
-                        name = translate[name]["pt"]
-                else:
-                    # Handle old format for backward compatibility
-                    if cfg.language.value == Language.ENGLISH:
-                        name = translate[name]
 
         map = self.getMapNameById(mapId)
         return {"map": map, "name": name}
@@ -1402,16 +1192,13 @@ class JsonManager:
         data = self.queues.get(queueId)
         return data["gameMode"] if data else None
 
+    def getMapIdByQueueId(self, queueId):
+        data = self.queues.get(queueId)
+        return data["mapId"] if data else None
+
     def getMapIconByMapId(self, mapId, win):
         result = "victory" if win else "defeat"
-        if mapId == 11:
-            mapName = "sr"
-        elif mapId == 12:
-            mapName = "ha"
-        elif mapId == 30:
-            mapName = "arena"
-        else:
-            mapName = "other"
+        mapName = "sr" if mapId == 11 else "other"
 
         return f"app/resource/images/{mapName}-{result}.png"
 
@@ -1441,21 +1228,8 @@ class JsonManager:
             if cid == championId:
                 return self.champs[cid]
 
-    def getSkinAugments(self, skinId):
-        return self.skinAugments.get(skinId)
-
     def getPerkStyles(self):
         return self.perkStyles
-
-    def getAugmentsIconPath(self, augmentId):
-        try:
-            return self.cherryAugments[augmentId]['augmentSmallIconPath']
-
-        except:
-            return "/lol-game-data/assets/ASSETS/Items/Icons2D/gp_ui_placeholder.png"
-
-    def getAugmentsName(self, augmentId):
-        return self.cherryAugments[augmentId]['nameTRA']
 
     def getSummonerSpellList(self):
         # 没找到 LCU API 返回这个玩意的，硬编码妥了

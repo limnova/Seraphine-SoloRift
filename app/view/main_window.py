@@ -46,7 +46,6 @@ from app.lol.tools import (parseAllyGameInfo, parseGameInfoByGameflowSession,
                            autoComplete, autoSwap, autoTrade, ChampionSelection,
                            SERVERS_NAME, SERVERS_SUBSET, showOpggBuild, autoShow,
                            autoSetSummonerSpell, isStatsEnabledForQueue)
-from app.lol.aram import AramBuff
 from app.lol.champions import ChampionAlias
 from app.lol.opgg import opgg
 
@@ -499,8 +498,6 @@ class MainWindow(FluentWindow):
 
         self.auxiliaryFuncInterface.lockConfigCard.loadNowMode()
 
-        # 加载大乱斗buff -- By Hpero4
-        aramInitT = asyncio.create_task(AramBuff.checkAndUpdate())
         championsInit = asyncio.create_task(ChampionAlias.checkAndUpdate())
 
         asyncio.create_task(self.opggWindow.initWindow())
@@ -533,11 +530,8 @@ class MainWindow(FluentWindow):
         # ---- 240413 ---- By Hpero4
 
         self.__unlockInterface()
-        await asyncio.gather(championsInit, aramInitT)
+        await asyncio.gather(championsInit)
         await self.__onGameStatusChanged(status)
-
-        # Note 如果你希望测试大乱斗的数据弹框, 参考这个 -- By Hpero4
-        # self.careerInterface.icon.aramInfo = AramBuff.getInfoByChampionId(75)
 
     async def __startConnector(self, pid):
         try:

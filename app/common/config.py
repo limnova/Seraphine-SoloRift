@@ -1,29 +1,12 @@
-from enum import Enum
-from copy import deepcopy
 import os
 import sys
 
-from PyQt5.QtCore import QLocale, QSize
+from PyQt5.QtCore import QSize
 
 
 from .qfluentwidgets import (qconfig, QConfig, ConfigItem, FolderValidator, BoolValidator,
                              OptionsConfigItem, OptionsValidator, ConfigSerializer,
                              RangeConfigItem, RangeValidator, EnumSerializer, ColorConfigItem, ConfigValidator)
-
-
-class Language(Enum):
-    CHINESE_SIMPLIFIED = QLocale(QLocale.Chinese, QLocale.China)
-    ENGLISH = QLocale(QLocale.English)
-    PORTUGUESE = QLocale(QLocale.Portuguese)
-    AUTO = QLocale()
-
-
-class LanguageSerializer(ConfigSerializer):
-    def serialize(self, language: Language):
-        return language.value.name() if language != Language.AUTO else "Auto"
-
-    def deserialize(self, value: str):
-        return Language(QLocale(value)) if value != 'Auto' else Language.AUTO
 
 
 class QSizeSerializer(ConfigSerializer):
@@ -40,24 +23,18 @@ def isWin11():
 
 
 class QueueFilterValidator(ConfigValidator):
-    def validate(self, value):
-        keys = ["420", "430", "440", "450", "480", "2400"]
+    # 只保留召唤师峡谷的队列, 老配置里残留的 450/2400 会被剔除
+    KEYS = ["420", "430", "440", "480"]
 
-        for key in keys:
+    def validate(self, value):
+        for key in self.KEYS:
             if key not in value:
                 return False
 
         return True
 
     def correct(self, value):
-        keys = ["420", "430", "440", "450", "480", "2400"]
-        new = deepcopy(value)
-
-        for key in keys:
-            if key not in value:
-                new[key] = []
-
-        return new
+        return {key: value.get(key, []) for key in self.KEYS}
 
 
 class Config(QConfig):
@@ -72,13 +49,6 @@ class Config(QConfig):
                                  "Auto",
                                  OptionsValidator(
                                      [1, 1.25, 1.5, 1.75, 2, "Auto"]),
-                                 restart=True)
-
-    language = OptionsConfigItem("Personalization",
-                                 "Language",
-                                 Language.AUTO,
-                                 OptionsValidator(Language),
-                                 LanguageSerializer(),
                                  restart=True)
 
     winCardColor = ColorConfigItem(
@@ -231,9 +201,7 @@ class Config(QConfig):
         "420": [],
         "430": [],
         "440": [],
-        "450": [],
         "480": [],
-        "2400": [],
     }, QueueFilterValidator())
 
 

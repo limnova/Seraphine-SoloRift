@@ -207,14 +207,6 @@ class SettingInterface(SeraphineInterface):
                 self.tr("Use system setting")
             ],
             parent=self.personalizationGroup)
-        self.languageCard = ComboBoxSettingCard(
-            cfg.language,
-            Icon.LANGUAGE,
-            self.tr('Language'),
-            self.tr('Set your preferred language for Seraphine'),
-            texts=['简体中文', 'English', 'Português',
-                   self.tr('Use system setting')],
-            parent=self.personalizationGroup)
 
         self.updateGroup = SettingCardGroup(
             self.tr("Update"), self.scrollWidget)
@@ -298,7 +290,6 @@ class SettingInterface(SeraphineInterface):
         self.personalizationGroup.addSettingCard(
             self.deathNumberColorSettingCard)
         self.personalizationGroup.addSettingCard(self.zoomCard)
-        self.personalizationGroup.addSettingCard(self.languageCard)
 
         self.updateGroup.addSettingCard(self.checkUpdateCard)
         self.updateGroup.addSettingCard(self.httpProxyCard)
@@ -354,7 +345,7 @@ class SettingInterface(SeraphineInterface):
     def __onDeleteButtonClicked(self):
         folders = [
             'champion icons', 'item icons', 'profile icons', 'rune icons',
-            'summoner spell icons', "augment icons"
+            'summoner spell icons'
         ]
 
         for folder in folders:

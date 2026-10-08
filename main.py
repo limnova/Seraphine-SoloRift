@@ -3,7 +3,7 @@ import os
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 from PyQt5.QtGui import QFont
-from PyQt5.QtCore import Qt, QTranslator
+from PyQt5.QtCore import Qt, QTranslator, QLocale
 from app.common.qfluentwidgets import FluentTranslator
 from qasync import QApplication, QEventLoop
 import asyncio
@@ -41,7 +41,7 @@ def main():
     appCloseEvent = asyncio.Event()
     app.aboutToQuit.connect(appCloseEvent.set)
 
-    locale = cfg.get(cfg.language).value
+    locale = QLocale(QLocale.Chinese, QLocale.China)
     fluentTranslator = FluentTranslator(locale)
     seraphineTranslator = QTranslator()
     seraphineTranslator.load(locale, "Seraphine", ".", "./app/resource/i18n")

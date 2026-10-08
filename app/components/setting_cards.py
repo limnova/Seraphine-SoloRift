@@ -558,15 +558,11 @@ class ModeCheckButtonsGroup(QWidget):
         self.quickButton = PillPushButton(self.tr("Quickplay"))
         self.soloDuoButton = PillPushButton(self.tr("Ranked Solo / Duo"))
         self.flexButton = PillPushButton(self.tr("Ranked Flex"))
-        self.aramButton = PillPushButton(self.tr("A.R.A.M."))
-        self.mayhemButton = PillPushButton(self.tr("ARAM: Mayhem"))
 
         self.modeButtons = [self.normalButton,
                             self.quickButton,
                             self.soloDuoButton,
-                            self.flexButton,
-                            self.aramButton,
-                            self.mayhemButton]
+                            self.flexButton]
 
         self.separator = QFrame()
         self.separator.setFrameShape(QFrame.Shape.VLine)
@@ -591,10 +587,6 @@ class ModeCheckButtonsGroup(QWidget):
             lambda: self.__onModeButtonClicked(420))
         self.flexButton.clicked.connect(
             lambda: self.__onModeButtonClicked(440))
-        self.aramButton.clicked.connect(
-            lambda: self.__onModeButtonClicked(450))
-        self.mayhemButton.clicked.connect(
-            lambda: self.__onModeButtonClicked(2400))
 
     def __initLayout(self):
         self.hBoxLayout.setContentsMargins(0, 0, 0, 0)
@@ -608,8 +600,6 @@ class ModeCheckButtonsGroup(QWidget):
         self.hBoxLayout.addWidget(self.quickButton)
         self.hBoxLayout.addWidget(self.soloDuoButton)
         self.hBoxLayout.addWidget(self.flexButton)
-        self.hBoxLayout.addWidget(self.aramButton)
-        self.hBoxLayout.addWidget(self.mayhemButton)
 
     def setSelectedButtons(self, selected: list):
         self.selected = selected
@@ -631,9 +621,7 @@ class ModeCheckButtonsGroup(QWidget):
             430: self.normalButton,
             420: self.soloDuoButton,
             440: self.flexButton,
-            450: self.aramButton,
             480: self.quickButton,
-            2400: self.mayhemButton,
         }[queueId]
 
     def __onAllButtonClicked(self):
@@ -677,15 +665,11 @@ class QueueFilterCard(ExpandGroupSettingCard):
         self.quickHintLabel = QLabel(self.tr("Quickplay:"))
         self.soloDuoHintLabel = QLabel(self.tr("Ranked Solo / Duo:"))
         self.flexHintLabel = QLabel(self.tr("Ranked Flex:"))
-        self.aramHintLabel = QLabel(self.tr("A.R.A.M.:"))
-        self.mayhemHintLabel = QLabel(self.tr("ARAM: Mayhem:"))
 
         self.normalButtonsGroup = ModeCheckButtonsGroup()
         self.quickButtonsGroup = ModeCheckButtonsGroup()
         self.soloDuoButtonsGroup = ModeCheckButtonsGroup()
         self.flexButtonsGroup = ModeCheckButtonsGroup()
-        self.aramButtonsGroup = ModeCheckButtonsGroup()
-        self.mayhemButtonsGroup = ModeCheckButtonsGroup()
 
         self.buttonsWidget = QWidget(self.view)
         self.buttonsLayout = QGridLayout(self.buttonsWidget)
@@ -703,8 +687,6 @@ class QueueFilterCard(ExpandGroupSettingCard):
         self.quickButtonsGroup.setSelectedButtons(selected['480'])
         self.soloDuoButtonsGroup.setSelectedButtons(selected['420'])
         self.flexButtonsGroup.setSelectedButtons(selected['440'])
-        self.aramButtonsGroup.setSelectedButtons(selected['450'])
-        self.mayhemButtonsGroup.setSelectedButtons(selected['2400'])
 
         self.normalButtonsGroup.selectedChanged.connect(
             lambda l: self.__onButtonsGroupSelectChanged(l, '430'))
@@ -714,10 +696,6 @@ class QueueFilterCard(ExpandGroupSettingCard):
             lambda l: self.__onButtonsGroupSelectChanged(l, '420'))
         self.flexButtonsGroup.selectedChanged.connect(
             lambda l: self.__onButtonsGroupSelectChanged(l, '440'))
-        self.aramButtonsGroup.selectedChanged.connect(
-            lambda l: self.__onButtonsGroupSelectChanged(l, '450'))
-        self.mayhemButtonsGroup.selectedChanged.connect(
-            lambda l: self.__onButtonsGroupSelectChanged(l, '2400'))
 
         self.resetButton.clicked.connect(self.__onResetButtonClicked)
 
@@ -730,15 +708,11 @@ class QueueFilterCard(ExpandGroupSettingCard):
         self.inputLayout.addWidget(self.quickHintLabel, 1, 0, Qt.AlignLeft)
         self.inputLayout.addWidget(self.soloDuoHintLabel, 2, 0, Qt.AlignLeft)
         self.inputLayout.addWidget(self.flexHintLabel, 3, 0, Qt.AlignLeft)
-        self.inputLayout.addWidget(self.aramHintLabel, 4, 0, Qt.AlignLeft)
-        self.inputLayout.addWidget(self.mayhemHintLabel, 5, 0, Qt.AlignLeft)
         self.inputLayout.addWidget(self.normalButtonsGroup, 0, 1, Qt.AlignLeft)
         self.inputLayout.addWidget(self.quickButtonsGroup, 1, 1, Qt.AlignLeft)
         self.inputLayout.addWidget(
             self.soloDuoButtonsGroup, 2, 1, Qt.AlignLeft)
         self.inputLayout.addWidget(self.flexButtonsGroup, 3, 1, Qt.AlignLeft)
-        self.inputLayout.addWidget(self.aramButtonsGroup, 4, 1, Qt.AlignLeft)
-        self.inputLayout.addWidget(self.mayhemButtonsGroup, 5, 1, Qt.AlignLeft)
 
         self.buttonsLayout.setVerticalSpacing(19)
         self.buttonsLayout.setContentsMargins(48, 18, 44, 18)
@@ -761,8 +735,6 @@ class QueueFilterCard(ExpandGroupSettingCard):
         self.quickButtonsGroup.setSelectedButtons([])
         self.soloDuoButtonsGroup.setSelectedButtons([])
         self.flexButtonsGroup.setSelectedButtons([])
-        self.aramButtonsGroup.setSelectedButtons([])
-        self.mayhemButtonsGroup.setSelectedButtons([])
 
         default = self.configItem.defaultValue
         qconfig.set(self.configItem, default)

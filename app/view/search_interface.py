@@ -31,7 +31,7 @@ from app.components.color_label import ColorLabel, DeathsLabel
 from app.lol.connector import connector
 from app.lol.exceptions import SummonerGamesNotFound, SummonerNotFound
 from app.lol.tools import (parseGameData, parseGameDetailData,
-                           parseGamesDataConcurrently, ARENA_QUEUE_IDS)
+                           parseGamesDataConcurrently, filterSummonerRiftGames)
 from ..components.seraphine_interface import SeraphineInterface
 
 
@@ -282,13 +282,6 @@ class GameDetailView(QFrame):
         self.teamView1 = TeamView()
         self.teamView2 = TeamView()
 
-        self.extraTeamView1 = TeamView()
-        self.extraTeamView2 = TeamView()
-        self.extraTeamView3 = TeamView()
-        self.extraTeamView4 = TeamView()
-        self.extraTeamView5 = TeamView()
-        self.extraTeamView6 = TeamView()
-
         self.loadingPage = QWidget()
         self.loadingPageLayout = QHBoxLayout(self.loadingPage)
         self.processRing = IndeterminateProgressRing()
@@ -312,13 +305,6 @@ class GameDetailView(QFrame):
         self.teamView1 = TeamView()
         self.teamView2 = TeamView()
 
-        self.extraTeamView1 = TeamView()
-        self.extraTeamView2 = TeamView()
-        self.extraTeamView3 = TeamView()
-        self.extraTeamView4 = TeamView()
-        self.extraTeamView5 = TeamView()
-        self.extraTeamView6 = TeamView()
-
         self.__initLayout()
 
     def __initLayout(self):
@@ -339,21 +325,7 @@ class GameDetailView(QFrame):
         self.scrollLayout.addWidget(self.teamView1)
         self.scrollLayout.addWidget(self.teamView2)
 
-        self.scrollLayout.addWidget(self.extraTeamView1)
-        self.scrollLayout.addWidget(self.extraTeamView2)
-        self.scrollLayout.addWidget(self.extraTeamView3)
-        self.scrollLayout.addWidget(self.extraTeamView4)
-        self.scrollLayout.addWidget(self.extraTeamView5)
-        self.scrollLayout.addWidget(self.extraTeamView6)
-
         self.vBoxLayout.addWidget(self.scrollArea)
-
-        self.extraTeamView1.setVisible(False)
-        self.extraTeamView2.setVisible(False)
-        self.extraTeamView3.setVisible(False)
-        self.extraTeamView4.setVisible(False)
-        self.extraTeamView5.setVisible(False)
-        self.extraTeamView6.setVisible(False)
 
         self.stackedWidget.addWidget(self.loadingPage)
         self.stackedWidget.addWidget(self.infoPage)
@@ -380,45 +352,16 @@ class GameDetailView(QFrame):
 
             return
 
-        isCherry = game["queueId"] in ARENA_QUEUE_IDS
         self.titleBar.updateTitleBar(game)
 
         team1 = game["teams"][100]
         team2 = game["teams"][200]
 
-        self.teamView1.updateTeam(team1, isCherry, self.tr("1st"))
+        self.teamView1.updateTeam(team1)
         self.teamView1.updateSummoners(team1["summoners"])
 
-        self.teamView2.updateTeam(team2, isCherry, self.tr("2nd"))
+        self.teamView2.updateTeam(team2)
         self.teamView2.updateSummoners(team2["summoners"])
-
-        extraTeamViews = [
-            self.extraTeamView1,
-            self.extraTeamView2,
-            self.extraTeamView3,
-            self.extraTeamView4,
-            self.extraTeamView5,
-            self.extraTeamView6,
-        ]
-
-        placements = [
-            self.tr("3rd"),
-            self.tr("4th"),
-            self.tr("5th"),
-            self.tr("6th"),
-            self.tr("7th"),
-            self.tr("8th"),
-        ]
-
-        # Arena 3x6 fills 6 subteams, legacy 2v2 fills 8 -- hide empty slots
-        for i, view in enumerate(extraTeamViews):
-            team = game["teams"][(i + 3) * 100]
-            visible = isCherry and len(team["summoners"]) > 0
-            view.setVisible(visible)
-
-            if visible:
-                view.updateTeam(team, isCherry, placements[i])
-                view.updateSummoners(team["summoners"])
 
 
 class TeamView(QFrame, ColorChangeable):
@@ -606,7 +549,7 @@ class TeamView(QFrame, ColorChangeable):
         self.vBoxLayout.addSpacing(8)
         self.vBoxLayout.addLayout(self.summonersLayout)
 
-    def updateTeam(self, team, isCherry, result):
+    def updateTeam(self, team):
         if not self.isToolTipInit:
             self.isToolTipInit = True
             self.__initToolTip()
@@ -628,9 +571,7 @@ class TeamView(QFrame, ColorChangeable):
         assists = team['assists']
         bans = team['bans']
 
-        if isCherry:
-            self.teamResultLabel.setText(result)
-        elif win == "Win":
+        if win == "Win":
             self.teamResultLabel.setText(self.tr("Winner"))
             self.teamResultLabel.setType('win')
             self.setType('win')
@@ -927,8 +868,6 @@ class GameTitleBar(QFrame, ColorChangeable):
         self.titleBarLayout.addSpacing(10)
 
     def updateTitleBar(self, game):
-        isCherry = game["queueId"] in ARENA_QUEUE_IDS
-
         self.remake = game['remake']
         self.win = game['win']
 
@@ -941,25 +880,6 @@ class GameTitleBar(QFrame, ColorChangeable):
         else:
             result = self.tr("Lose")
             self.setType('lose')
-
-        if isCherry:
-            cherryResult = game["cherryResult"]
-            if cherryResult == 1:
-                result = self.tr("1st")
-            elif cherryResult == 2:
-                result = self.tr("2nd")
-            elif cherryResult == 3:
-                result = self.tr("3rd")
-            elif cherryResult == 4:
-                result = self.tr("4rd")
-            elif cherryResult == 5:
-                result = self.tr("5rd")
-            elif cherryResult == 6:
-                result = self.tr("6rd")
-            elif cherryResult == 7:
-                result = self.tr("7rd")
-            else:
-                result = self.tr("8th")
 
         self.gameId = game['gameId']
 
@@ -1158,8 +1078,6 @@ class SearchInterface(SeraphineInterface):
         self.filterComboBox.addItems([
             self.tr('All'),
             self.tr('Normal'),
-            self.tr("A.R.A.M."),
-            self.tr("ARAM: Mayhem"),
             self.tr("Ranked Solo"),
             self.tr("Ranked Flex")
         ])
@@ -1252,7 +1170,7 @@ class SearchInterface(SeraphineInterface):
             except SummonerGamesNotFound:
                 games = []
             else:
-                games = await parseGamesDataConcurrently(games['games'])
+                games = await parseGamesDataConcurrently(filterSummonerRiftGames(games['games']))
 
             if len(games) == 0:
                 self.gamesView.gamesTab.nextButton.setVisible(False)
@@ -1360,7 +1278,7 @@ class SearchInterface(SeraphineInterface):
                 return
 
             # 处理数据，交给 gamesTab，更新其 games 成员以及 queueIdMap
-            games = await parseGamesDataConcurrently(games['games'])
+            games = await parseGamesDataConcurrently(filterSummonerRiftGames(games['games']))
 
             if self.puuid != puuid:
                 return
@@ -1430,7 +1348,7 @@ class SearchInterface(SeraphineInterface):
         tabs = self.gamesView.gamesTab
         tabs.clearTabs()
 
-        ids = (-1, (400, 430), 450, 2400, 420, 440)
+        ids = (-1, (400, 430), 420, 440)
         tabs.queueId = ids[index]
 
         self.gamesView.setLoadingPageEnable(True)

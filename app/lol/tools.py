@@ -7,7 +7,7 @@ import asyncio
 from PyQt5.QtCore import QObject
 
 from .exceptions import SummonerRankInfoNotFound
-from ..common.config import cfg, Language
+from ..common.config import cfg
 from ..lol.connector import connector
 from ..common.signals import signalBus
 
@@ -17,17 +17,47 @@ SERVERS_NAME = {
     "HN10": "黑色玫瑰", "HN1": "艾欧尼亚", "BGP2": "峡谷之巅"
 }
 
-# 斗魂竞技场 -- Arena (gameMode CHERRY): 1700/1710 legacy 2v2x8, 1750 current 3x6
-ARENA_QUEUE_IDS = (1700, 1710, 1750)
+# 只保留召唤师峡谷的对局 (嚎哭深渊/极限闪击等其它地图的玩法不再支持)
+SUMMONER_RIFT_MAP_ID = 11
 
 # Game modes whose matches carry no SR-style stats to display
-# (Arena, Teamfight Tactics and Swarm PvE)
+# (Arena and Teamfight Tactics / Swarm PvE) -- these are excluded, not rendered
 STATS_EXCLUDED_GAME_MODES = ('CHERRY', 'TFT', 'STRAWBERRY')
 
 
 def isStatsEnabledForQueue(queueId):
-    gameMode = connector.manager.getGameModeByQueueId(queueId)
-    return gameMode not in STATS_EXCLUDED_GAME_MODES
+    """
+    是否查询并展示该队列的常规对局数据
+
+    只保留召唤师峡谷: 云顶/斗魂这类模式本身没有常规对局数据;
+    其余模式还要求对局发生在召唤师峡谷, 以排除大乱斗/极限闪击等
+    """
+    if connector.manager.getGameModeByQueueId(queueId) in STATS_EXCLUDED_GAME_MODES:
+        return False
+
+    mapId = connector.manager.getMapIdByQueueId(queueId)
+    return True if mapId is None else mapId == SUMMONER_RIFT_MAP_ID
+
+
+def filterSummonerRiftGames(games):
+    """
+    过滤出召唤师峡谷的对局
+
+    @param games: 由 connector.getSummonerGamesByPuuid 获取到的原始对局列表
+    @rtype: list
+    """
+    return [game for game in games if game.get('mapId') == SUMMONER_RIFT_MAP_ID]
+
+
+def filterSummonerRiftGamesSGP(games):
+    """
+    过滤出召唤师峡谷的对局 (SGP 接口返回的对局数据多套了一层 json)
+
+    @param games: 由 connector.getSummonerGamesByPuuidViaSGP 获取到的原始对局列表
+    @rtype: list
+    """
+    return [game for game in games
+            if game['json'].get('mapId') == SUMMONER_RIFT_MAP_ID]
 
 SERVERS_SUBSET = {
     "NJ100": ["祖安", "皮尔特沃夫", "巨神峰", "教育网", "男爵领域", "均衡教派", "影流", "守望之海"],
@@ -82,10 +112,7 @@ def translateTier(orig: str, short=False) -> str:
 
     index = 1 if short else 0
 
-    if cfg.language.value == Language.ENGLISH:
-        return orig.capitalize()
-    else:
-        return maps[orig.capitalize()][index]
+    return maps.get(orig.capitalize(), [orig, orig])[index]
 
 
 def timeStampToStr(stamp):
@@ -162,7 +189,7 @@ async def parseSummonerData(summoner, rankTask, gameTask):
             "assists": 0,
             "games": [],
         }
-        for game in gamesInfo["games"]:
+        for game in filterSummonerRiftGames(gamesInfo["games"]):
             info = await parseGameData(game)
             if time.time() - info["timeStamp"] / 1000 > 60 * 60 * 24 * 365:
                 continue
@@ -297,6 +324,11 @@ async def parseGameDetailData(puuid, game):
     queueId = game['queueId']
     mapId = game['mapId']
 
+    # 只渲染双方对抗 (蓝/红两队) 的对局
+    # 多队伍模式 (斗魂竞技场等) 的 teamId 会超过 100/200, 不再支持
+    if any(team['teamId'] not in (0, 100, 200) for team in game['teams']):
+        return None
+
     names = connector.manager.getNameMapByQueueId(queueId)
     modeName = names['name']
     if queueId != 0:
@@ -329,15 +361,8 @@ async def parseGameDetailData(puuid, game):
     teams = {
         100: origTeam("100"),
         200: origTeam("200"),
-        300: origTeam("100"),
-        400: origTeam("200"),
-        500: origTeam("100"),
-        600: origTeam("200"),
-        700: origTeam("100"),
-        800: origTeam("200"),
     }
 
-    cherryResult = None
     win = None
 
     for team in game['teams']:
@@ -375,19 +400,11 @@ async def parseGameDetailData(puuid, game):
             if summoner['participantId'] == participantId:
                 stats = summoner['stats']
 
-                if queueId not in ARENA_QUEUE_IDS:
-                    subteamPlacement = None
-                    tid = summoner['teamId']
-                else:
-                    subteamPlacement = stats['subteamPlacement']
-                    tid = subteamPlacement * 100
+                tid = summoner['teamId']
 
                 if isCurrent:
                     remake = stats['gameEndedInEarlySurrender']
                     win = stats['win']
-
-                    if queueId in ARENA_QUEUE_IDS:
-                        cherryResult = subteamPlacement
 
                 championId = summoner['championId']
                 championIcon = await connector.getChampionIcon(championId)
@@ -435,25 +452,21 @@ async def parseGameDetailData(puuid, game):
                     else:
                         rank = rank['queueMap']
 
-                        if queueId in ARENA_QUEUE_IDS and 'CHERRY' in rank:
-                            rankInfo = rank["CHERRY"]
-                            lp = rankInfo['ratedRating']
+                        rankInfo = rank[
+                            'RANKED_FLEX_SR'] if queueId == 440 else rank['RANKED_SOLO_5x5']
+
+                        tier = rankInfo['tier']
+                        division = rankInfo['division']
+                        lp = rankInfo['leaguePoints']
+
+                        if tier == '':
+                            rankIcon = 'app/resource/images/unranked.png'
                         else:
-                            rankInfo = rank[
-                                'RANKED_FLEX_SR'] if queueId == 440 else rank['RANKED_SOLO_5x5']
+                            rankIcon = f'app/resource/images/{tier.lower()}.png'
+                            tier = translateTier(tier, True)
 
-                            tier = rankInfo['tier']
-                            division = rankInfo['division']
-                            lp = rankInfo['leaguePoints']
-
-                            if tier == '':
-                                rankIcon = 'app/resource/images/unranked.png'
-                            else:
-                                rankIcon = f'app/resource/images/{tier.lower()}.png'
-                                tier = translateTier(tier, True)
-
-                            if division == 'NA':
-                                division = ''
+                        if division == 'NA':
+                            division = ''
 
                 item = {
                     'summonerName': summonerName,
@@ -476,7 +489,6 @@ async def parseGameDetailData(puuid, game):
                     'runeIcon': runeIcon,
                     'champLevel': stats['champLevel'],
                     'demage': stats['totalDamageDealtToChampions'],
-                    'subteamPlacement': subteamPlacement,
                     'isPublic': isPublic
                 }
                 teams[tid]['summoners'].append(item)
@@ -497,7 +509,6 @@ async def parseGameDetailData(puuid, game):
         'mapName': mapName,
         'queueId': queueId,
         'win': win,
-        'cherryResult': cherryResult,
         'remake': remake,
         'teams': teams,
     }
@@ -524,10 +535,7 @@ def getTeammates(game, targetPuuid):
 
     for player in game['participants']:
         if player['participantId'] == targetParticipantId:
-            if game['queueId'] not in ARENA_QUEUE_IDS:
-                tid = player['teamId']
-            else:  # Arena mode
-                tid = player['stats']['subteamPlacement']
+            tid = player['teamId']
 
             win = player['stats']['win']
             remake = player['stats']['teamEarlySurrendered']
@@ -539,15 +547,12 @@ def getTeammates(game, targetPuuid):
         'win': win,
         'remake': remake,
         'summoners': [],  # Teammate summoners (field name unchanged for compatibility)
-        'enemies': []  # Enemy summoners, all placed here if there are multiple teams
+        'enemies': []
     }
 
     for player in game['participants']:
 
-        if game['queueId'] not in ARENA_QUEUE_IDS:
-            cmp = player['teamId']
-        else:
-            cmp = player['stats']['subteamPlacement']
+        cmp = player['teamId']
 
         p = player['participantId']
         s = game['participantIdentities'][p - 1]['player']
@@ -854,7 +859,7 @@ async def parseAllyGameInfo(session, currentSummonerId, queueID, useSGP=False):
                  for summoner in summoners}
     order = [summoner['summonerId'] for summoner in summoners]
 
-    return {'summoners': summoners, 'champions': champions, 'order': order, "isAram": session.get('benchEnabled', False)}
+    return {'summoners': summoners, 'champions': champions, 'order': order}
 
 
 def parseSummonerOrder(team):
@@ -1039,6 +1044,9 @@ async def parseSummonerGameInfo(item, queueId, currentSummonerId):
 
         queueFilterList = cfg.get(cfg.queueFilter)
         queueIds = queueFilterList.get(f"{queueId}")
+
+        origGamesInfo["games"] = filterSummonerRiftGames(origGamesInfo["games"])
+
         if queueIds:
             origGamesInfo["games"] = [
                 game for game in origGamesInfo["games"] if game["queueId"] in queueIds]
@@ -1048,7 +1056,7 @@ async def parseSummonerGameInfo(item, queueId, currentSummonerId):
                 endIdx = begIdx + 5
                 new = (await connector.getSummonerGamesByPuuid(puuid, begIdx, endIdx))["games"]
 
-                for game in new:
+                for game in filterSummonerRiftGames(new):
                     if game["queueId"] in queueIds:
                         origGamesInfo['games'].append(game)
 
@@ -1134,6 +1142,9 @@ async def getSummonerGamesInfoViaSGP(item, queueID, currentSummonerId):
 
         queueFilterList = cfg.get(cfg.queueFilter)
         queueIds = queueFilterList.get(f"{queueID}")
+
+        origGamesInfo["games"] = filterSummonerRiftGamesSGP(origGamesInfo["games"])
+
         if queueIds:
             origGamesInfo["games"] = [
                 game for game in origGamesInfo["games"] if game['json']["queueId"] in queueIds]
@@ -1143,7 +1154,7 @@ async def getSummonerGamesInfoViaSGP(item, queueID, currentSummonerId):
                 endIdx = begIdx + 10
                 new = (await connector.getSummonerGamesByPuuidViaSGP(puuid, begIdx, endIdx))["games"]
 
-                for game in new:
+                for game in filterSummonerRiftGamesSGP(new):
                     if game['json']["queueId"] in queueIds:
                         origGamesInfo['games'].append(game)
 
@@ -1151,12 +1162,19 @@ async def getSummonerGamesInfoViaSGP(item, queueID, currentSummonerId):
     except:
         gamesInfo = []
     else:
-        summonerName, tagLine = getNameTagLineFromGame(
-            origGamesInfo['games'][0], puuid)
+        if len(origGamesInfo['games']) == 0:
+            # 过滤后没有召唤师峡谷对局 (例如只玩大乱斗的玩家)
+            gamesInfo = []
+            summonerName = summoner.get(
+                "gameName") or summoner.get("displayName")
+            tagLine = summoner.get("tagLine")
+        else:
+            summonerName, tagLine = getNameTagLineFromGame(
+                origGamesInfo['games'][0], puuid)
 
-        tasks = [parseGamesDataFromSGP(game, puuid)
-                 for game in origGamesInfo["games"][:11]]
-        gamesInfo = await asyncio.gather(*tasks)
+            tasks = [parseGamesDataFromSGP(game, puuid)
+                     for game in origGamesInfo["games"][:11]]
+            gamesInfo = await asyncio.gather(*tasks)
 
     _, kill, deaths, assists, _, _ = parseGames(gamesInfo)
 
@@ -1211,10 +1229,7 @@ def getTeammatesFromSGPGame(game, puuid):
 
     for player in json['participants']:
         if player['puuid'] == puuid:
-            if queueId not in ARENA_QUEUE_IDS:
-                tid = player['teamId']
-            else:  # 斗魂竞技场
-                tid = player['subteamPlacement']
+            tid = player['teamId']
 
             win = player['win']
             remake = player['teamEarlySurrendered']
@@ -1226,14 +1241,11 @@ def getTeammatesFromSGPGame(game, puuid):
         'win': win,
         'remake': remake,
         'summoners': [],  # 队友召唤师 (由于兼容性, 未修改字段名)
-        'enemies': []  # 对面召唤师, 若有多个队伍会全放这里面
+        'enemies': []  # 对面召唤师
     }
 
     for player in json['participants']:
-        if queueId not in ARENA_QUEUE_IDS:
-            cmp = player['teamId']
-        else:
-            cmp = player['subteamPlacement']
+        cmp = player['teamId']
 
         if cmp == tid:
             if player['puuid'] != puuid:
@@ -1441,7 +1453,7 @@ async def showOpggBuild(data, selection: ChampionSelection):
             championId = player['championId'] or player['championPickIntent']
             break
 
-    # 大乱斗模式下，即使锁定了也可能会换英雄，这里判断一下
+    # 锁定后仍可能更换英雄，这里判断一下
     if championId == selection.opggShowChampionId:
         return False
 
@@ -1459,20 +1471,9 @@ async def showOpggBuild(data, selection: ChampionSelection):
         return False
 
     if selection.queueId == None:
-        if data.get('benchEnabled'):
-            mode = "aram"
-        elif len(data['myTeam']) in (2, 3):  # Arena: 2v2 legacy / 3x6 current
-            mode = 'arena'
-        else:
-            mode = ""
+        mode = ""
     else:
-        if selection.queueId in (450, 2400):  # ARAM / ARAM: Mayhem
-            mode = 'aram'
-        elif selection.queueId in ARENA_QUEUE_IDS:
-            mode = 'arena'
-        elif selection.queueId == 1300:
-            mode = 'nexus_blitz'
-        elif selection.queueId in (900, 901, 1900, 740, 741):  # ARURF / URF / URF Clash
+        if selection.queueId in (900, 901, 1900, 740, 741):  # ARURF / URF / URF Clash
             mode = 'urf'
         else:
             mode = 'ranked'

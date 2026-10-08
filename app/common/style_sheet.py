@@ -26,7 +26,6 @@ class StyleSheet(StyleSheetBase, Enum):
     OPGG_ERROR_INTERFACE = "opgg_error_interface"
     OPGG_HOME_INTERFACE = "opgg_home_interface"
 
-    ARAM_FLYOUT = 'aram_flyout'
     DRAGGABLE_WIDGET = 'draggable_widget'
     CHAMPIONS_SELECT_WIDGET = 'champions_select_widget'
     TRANSPARENT_BUTTON = 'transparent_button'

@@ -172,15 +172,7 @@ class OpggWindow(OpggWindowBase):
         self.modeComboBox.addItem(
             self.tr("Ranked"), icon="app/resource/images/sr-victory.png", userData='ranked')
         self.modeComboBox.addItem(
-            self.tr("Aram"), icon="app/resource/images/ha-victory.png", userData='aram')
-        self.modeComboBox.addItem(
-            self.tr("ARAM: Mayhem"), icon="app/resource/images/ha-victory.png", userData='aram')
-        self.modeComboBox.addItem(
-            self.tr("Arena"), icon="app/resource/images/arena-victory.png", userData='arena')
-        self.modeComboBox.addItem(
             self.tr("Urf"), icon="app/resource/images/other-victory.png", userData='urf')
-        self.modeComboBox.addItem(
-            self.tr("Nexus Blitz"), icon="app/resource/images/other-victory.png", userData='nexus_blitz')
 
         self.regionComboBox.addItem(
             self.tr("All regions"), icon="app/resource/images/global.svg", userData="global")
@@ -433,13 +425,6 @@ class OpggWindow(OpggWindowBase):
         else:
             self.positionComboBox.setVisible(True)
 
-        # 斗魂竞技场的段位选择只能是 "all"
-        if mode == 'arena':
-            tier = 'all'
-            self.tierComboBox.setVisible(False)
-        else:
-            self.tierComboBox.setVisible(True)
-
         if mode == 'ranked':
             # rank 模式下，如果是切换了位置选项，会命中 cache，不用重新请求了
             if tier == self.cachedTier and \
@@ -479,13 +464,6 @@ class OpggWindow(OpggWindowBase):
             self.positionComboBox.setVisible(False)
         else:
             self.positionComboBox.setVisible(True)
-
-        # 斗魂竞技场的段位选择只能是 "all"
-        if mode == 'arena':
-            tier = 'all'
-            self.tierComboBox.setVisible(False)
-        else:
-            self.tierComboBox.setVisible(True)
 
         logger.info(
             f"Get champion build, {mode}, {region}, {tier}, {position}, {championId}", TAG)

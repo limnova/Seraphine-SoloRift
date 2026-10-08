@@ -35,10 +35,7 @@ class Opgg:
 
     @alru_cache(maxsize=512)
     async def __fetchChampionBuild(self, region, mode, championId, position, tier):
-        if mode != 'arena':
-            url = f"/api/{region}/champions/{mode}/{championId}/{position}"
-        else:
-            url = f"/api/{region}/champions/{mode}/{championId}"
+        url = f"/api/{region}/champions/{mode}/{championId}/{position}"
 
         params = {"tier": tier}
 
@@ -52,10 +49,7 @@ class Opgg:
 
         raw = await self.__fetchChampionBuild(region, mode, championId, position, tier)
 
-        if mode != 'arena':
-            res = await OpggDataParser.parseOtherChampionBuild(raw, position)
-        else:
-            res = await OpggDataParser.parseArenaChampionBuild(raw)
+        res = await OpggDataParser.parseOtherChampionBuild(raw, position)
 
         return {
             'data': res,
@@ -325,108 +319,6 @@ class OpggDataParser:
                 "weakAgainst": weakAgainst,
             },
             "perks": perks,
-        }
-
-    @staticmethod
-    async def parseArenaChampionBuild(data):
-        data = data['data']
-
-        summary = data['summary']
-        championId = summary['id']
-        name = connector.manager.getChampionNameById(championId)
-        icon = await connector.getChampionIcon(championId)
-
-        stats = summary['average_stats']
-        play = stats['play']
-        winRate = stats['win'] / play
-        firstRate = stats['first_place'] / play
-        averagePlace = stats['total_place'] / play
-        pickRate = stats['pick_rate']
-        banRate = stats['ban_rate']
-        tier = stats['tier']
-
-        skills = {
-            "masteries": data['skill_masteries'][0]['ids'],
-            "order": data['skills'][0]['order'],
-            'play': data['skills'][0]['play'],
-            'win': data['skills'][0]['win'],
-            'pickRate': data['skills'][0]['pick_rate']
-        }
-
-        async def parseItemGroup(items, limit):
-            res = []
-            for i in (items or [])[:limit]:
-                icons = [await connector.getItemIcon(id) for id in i['ids']]
-                res.append({
-                    "icons": icons,
-                    "play": i['play'],
-                    "win": i['win'],
-                    'pickRate': i['pick_rate'],
-                    "averatePlace": i['total_place'] / i['play'],
-                    "firstRate": i['first_place'] / i['play']
-                })
-
-            return res
-
-        boots = await parseItemGroup(data.get('boots'), 3)
-        startItems = await parseItemGroup(data.get('starter_items'), 3)
-        prismItems = await parseItemGroup(data.get('prism_items'), 3)
-        coreItems = await parseItemGroup(data.get('core_items'), 5)
-
-        lastItems = []
-        for i in (data.get('last_items') or [])[:16]:
-            lastItems.append(await connector.getItemIcon(i['ids'][0]))
-
-        augments = []
-        for item in data['augment_group']:
-            arr = [{
-                "id": (augId := aug['id']),
-                "icon": await connector.getAugmentIcon(augId),
-                "name": connector.manager.getAugmentsName(augId),
-                "win": aug['win'],
-                'play': aug['play'],
-                "totalPlace": aug['total_place'],
-                "firstPlace": aug['first_place'],
-                'pickRate': aug['pick_rate']
-            }for aug in item['augments']]
-
-            augments.append(arr)
-
-        synergies = [{
-            "championId": (chId := syn['champion_id']),
-            'icon': await connector.getChampionIcon(chId),
-            "name": connector.manager.getChampionNameById(chId),
-            "win": syn['win'],
-            'play': syn['play'],
-            "totalPlace": syn['total_place'],
-            "firstPlace": syn['first_place'],
-            'pickRate': syn['pick_rate']
-        }for syn in data['synergies']]
-
-        return {
-            "summary": {
-                "name": name,
-                "icon": icon,
-                "championId": championId,
-                "play": play,
-                "winRate": winRate,
-                "firstRate": firstRate,
-                "averagePlace": averagePlace,
-                "pickRate": pickRate,
-                "banRate": banRate,
-                "tier": tier,
-                "position": "none"
-            },
-            "championSkills": skills,
-            "items": {
-                "boots": boots,
-                "startItems": startItems,
-                "prismItems": prismItems,
-                "coreItems": coreItems,
-                "lastItems": lastItems,
-            },
-            "augments": augments,
-            "synergies": synergies,
         }
 
 
