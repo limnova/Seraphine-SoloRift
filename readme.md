@@ -8,10 +8,10 @@
 
 <div align="center">
 
-  [![License](https://img.shields.io/github/license/Miuguel/Seraphine?style=flat&label=License)](https://github.com/Miuguel/Seraphine/blob/main/LICENSE)
-  [![Forks](https://img.shields.io/github/forks/Miuguel/Seraphine?style=flat&label=Forks)](https://github.com/Miuguel/Seraphine/forks)
-  [![Stars](https://img.shields.io/github/stars/Miuguel/Seraphine?style=flat&label=Stars)](https://github.com/Miuguel/Seraphine/stargazers)
-  [![Downloads](https://img.shields.io/github/downloads/Miuguel/Seraphine/total?style=flat&label=Downloads)](https://github.com/Miuguel/Seraphine/releases)
+  [![License](https://img.shields.io/github/license/limnova/Seraphine-SoloRift?style=flat&label=License)](https://github.com/limnova/Seraphine-SoloRift/blob/master/LICENSE)
+  [![Forks](https://img.shields.io/github/forks/limnova/Seraphine-SoloRift?style=flat&label=Forks)](https://github.com/limnova/Seraphine-SoloRift/forks)
+  [![Stars](https://img.shields.io/github/stars/limnova/Seraphine-SoloRift?style=flat&label=Stars)](https://github.com/limnova/Seraphine-SoloRift/stargazers)
+  [![Downloads](https://img.shields.io/github/downloads/limnova/Seraphine-SoloRift/total?style=flat&label=Downloads)](https://github.com/limnova/Seraphine-SoloRift/releases)
 
 </div>
 
@@ -29,26 +29,23 @@
 
 ## 快速上手 🤗
 ### 直接使用打包好的程序
-点击[这里](https://github.com/Miuguel/Seraphine/releases/latest)进入发布页面，在下方找到资源中的 `Seraphine.7z`，点击下载并解压至文件夹中，双击运行其中的 `Seraphine.exe` 即可。
+本仓库暂未发布构建产物。可参考上游 [Miuguel/Seraphine 的 Releases](https://github.com/Miuguel/Seraphine/releases/latest) 下载 `Seraphine.7z`
+（注意那是**未包含本仓库改动**的版本），或按下方步骤自行构建。
 
 ### 或通过本地构建
 下载项目源码 `zip` 压缩包解压至文件夹或通过 `git`
 ```shell
-git clone https://github.com/Miuguel/Seraphine.git
-cd Seraphine
+git clone https://github.com/limnova/Seraphine-SoloRift.git
+cd Seraphine-SoloRift
 ```
-创建并激活新的 conda 环境
+使用 [uv](https://docs.astral.sh/uv/) 创建虚拟环境并安装依赖（项目按 Python 3.8 开发）
 ```shell
-conda create -n seraphine python=3.8
-conda activate seraphine
-```
-安装依赖
-```shell
-pip install -r requirements.txt
+uv venv --python 3.8
+uv pip install -r requirements.txt
 ```
 运行 `main.py` 开始使用
 ```shell
-python main.py
+uv run main.py
 ```
 ### 卸载 Seraphine 😑
 删除 Seraphine 所在文件夹并删除 `%AppData%/Seraphine` 文件夹即可。
@@ -86,7 +83,7 @@ python main.py
 
 ## 常见问题 FAQ 🧐
 ### Q：我会因为使用 Seraphine 而被封号吗 😨？
-由于本程序的功能**完全**基于英雄联盟客户端 API 实现，**不含任何**对客户端以及游戏文件本体、代码以及内存的读取或破坏其完整性的行为（详情见下方[套盾环节](https://github.com/Miuguel/Seraphine#%E5%A5%97%E7%9B%BE%E7%8E%AF%E8%8A%82-%EF%B8%8F)）。因此仅使用 Seraphine 时极大概率不会被封号，但**并不保证**一定不会封号。
+由于本程序的功能**完全**基于英雄联盟客户端 API 实现，**不含任何**对客户端以及游戏文件本体、代码以及内存的读取或破坏其完整性的行为（详情见下方[套盾环节](https://github.com/limnova/Seraphine-SoloRift#%E5%A5%97%E7%9B%BE%E7%8E%AF%E8%8A%82-%EF%B8%8F)）。因此仅使用 Seraphine 时极大概率不会被封号，但**并不保证**一定不会封号。
 
 ### Q：真的被封号了怎么办？
 申诉或等待解封吧 😭
@@ -102,9 +99,9 @@ Seraphine 提供的战绩查询相关功能的数据均是由英雄联盟客户�
 
 
 ## 帮助我们改进 Seraphine 😘
-在您的使用过程中，如果遇到程序的任何 BUG 或不符合预期的行为，欢迎提出 [issue](https://github.com/Miuguel/Seraphine/issues)。发布 issue 时请按照模板填写。**发布新 issue 前请先善用搜索功能，看看之前是否讨论过相关或类似的问题！**
+在您的使用过程中，如果遇到程序的任何 BUG 或不符合预期的行为，欢迎提出 [issue](https://github.com/limnova/Seraphine-SoloRift/issues)。发布 issue 时请按照模板填写。**发布新 issue 前请先善用搜索功能，看看之前是否讨论过相关或类似的问题！**
 
-如果您有功能上的添加或修改建议，也非常欢迎提出 issue 进行讨论！[PR](https://github.com/Miuguel/Seraphine/pulls) 也大欢迎！
+如果您有功能上的添加或修改建议，也非常欢迎提出 issue 进行讨论！[PR](https://github.com/limnova/Seraphine-SoloRift/pulls) 也大欢迎！
 
 ## 您也可以自己打包可执行文件 📂
 在 `seraphine` 虚拟环境下安装 `Pyinstaller`，并确认环境支持 `7z` 命令
@@ -127,7 +124,7 @@ Seraphine is not endorsed by Riot Games and does not reflect the views or opinio
 **参考译文**：Seraphine 未经 Riot Games 认可，也不代表 Riot Games 或任何官方参与制作或管理 Riot Games 产品的人的观点或意见。Riot Games 及其所有相关产物均为 Riot Games，Inc 的商标或注册商标。
 
 ## 套盾环节 🛡️
-本程序为在 GitHub 仓库 [Miuguel/Seraphine](https://github.com/Miuguel/Seraphine) 开源的代码，以及在 [Release](https://github.com/Miuguel/Seraphine/releases) 中上传的二进制文件。本环节旨在让用户更加全面详尽地了解本程序以及可能风险，以便用户在使用本程序前及过程中做出充分的风险评估和明智的决策。
+本程序基于 GitHub 上 [Zzaphkiel/Seraphine](https://github.com/Zzaphkiel/Seraphine) 与 [Miuguel/Seraphine](https://github.com/Miuguel/Seraphine) 的开源代码，本仓库是它们的分支；二进制文件见本仓库的 [Release](https://github.com/limnova/Seraphine-SoloRift/releases)。本环节旨在让用户更加全面详尽地了解本程序以及可能风险，以便用户在使用本程序前及过程中做出充分的风险评估和明智的决策。
 
 1. 本程序的目的是通过为游戏玩家提供**游戏外**辅助功能，从而给玩家提供更好的游戏体验。我们不鼓励不支持任何违反 Riot 以及腾讯规定或任何可能导致游戏环境不公平的行为。
 2. 本程序的代码实现遵守 [Riot Policies](https://developer.riotgames.com/policies/general) 的规定，提供的功能符合 [《英雄联盟》游戏插件公约](https://lol.qq.com/webplat/info/news_version3/152/4579/4581/m3106/201509/381618.shtml) 的要求。
@@ -169,8 +166,8 @@ Seraphine is not endorsed by Riot Games and does not reflect the views or opinio
 
 ## 点个 Star 支持我们 ⭐
 <p align='center'>
-  <a href="https://github.com/Miuguel/Seraphine/stargazers">
-    <img src="https://api.star-history.com/svg?repos=Miuguel/Seraphine&type=Date">
+  <a href="https://github.com/limnova/Seraphine-SoloRift/stargazers">
+    <img src="https://api.star-history.com/svg?repos=limnova/Seraphine-SoloRift&type=Date">
   </a>
 </p>
 
@@ -188,5 +185,5 @@ Seraphine is not endorsed by Riot Games and does not reflect the views or opinio
   </p>
 
 ## 许可证 ⚖️
-- 对于非商用行为，Seraphine 使用 [GPLv3](https://github.com/Miuguel/Seraphine/blob/main/LICENSE) 许可证。
+- 对于非商用行为，Seraphine 使用 [GPLv3](https://github.com/limnova/Seraphine-SoloRift/blob/master/LICENSE) 许可证。
 - 禁止一切针对代码以及二进制文件的商用行为。

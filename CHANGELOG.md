@@ -31,9 +31,13 @@
 ### 修复
 - `translateTier()` 对未收录段位会 KeyError，改为带兜底取值。
 - SGP 路径在过滤后没有剩余对局时（例如只玩大乱斗的玩家）会索引越界，已加空列表分支。
+- `requirements.txt` 缺少直接依赖 `pywin32`（`win32api` / `win32gui` 被直接 import，
+  且它不是其它包的传递依赖），新环境装完依赖后程序无法启动；同时把只靠传递依赖引入的
+  `PyQt5-Frameless-Window`（`qframelesswindow`）显式声明。
 
 ### 清理
 - 删除未被挂载/未被引用的界面组件与 LCU 接口封装。
 - 删除失效的翻译条目（`Seraphine.zh_CN.ts` 由 670 条精简至 513 条）。
 - 删除无引用的 `Icon` 枚举项与对应的 svg 资源，枚举与资源现为一一对应。
 - 重写 `readme.md` 为简体中文，功能清单按实际代码校正。
+- 构建说明由 conda 改为 [uv](https://docs.astral.sh/uv/)（`uv venv --python 3.8` + `uv pip install -r requirements.txt`）。
